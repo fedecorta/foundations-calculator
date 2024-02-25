@@ -1,5 +1,5 @@
-let currentOperand = 0
-let previousOperand = 0
+let currentOperand = ""
+let previousOperand = ""
 let currentOperator = null
 
 function add (a,b) {
@@ -38,46 +38,57 @@ function operate (a,operator,b) {
 
 }
 
-const screen = document.querySelector('.calculator-screen input');
-
+const screen = document.querySelector('.calculator-screen');
 const buttons = document.querySelectorAll(".calculator-buttons button");
 
 function handleButtonClick(event) {
-    const buttonValue = event.target.value; // Gets the 'value' attribute of the clicked button
-    const buttonType = event.target.classList; // Access the classes of the button
+    const buttonValue = event.target.value;
+    const buttonType = event.target.classList;
 
-    // Regular expression to check for any operator at the end of the screen's value
-    const endsWithOperator = /[\+\-\*\/] $/.test(screen.value.trim());
-
-    // Handle number and operator buttons
     if (buttonType.contains('number')) {
-        screen.value += buttonValue;
-        currentOperand += buttonValue;
-    } else if (buttonType.contains('operator')) {
-        if (!endsWithOperator && screen.value !== "") {
-            // Ensure no consecutive operators by checking against the regex
-            screen.value += ` ${buttonValue} `;
+        currentOperand += buttonValue; // Accumulate digits
+        screen.value = currentOperand; // Update screen with current number
+    } else if (buttonType.contains('operator') && buttonValue !== '=') {
+        if (previousOperand !== "" && currentOperand !== "" && currentOperator) {
+            // If there's a pending operation, execute it
+            currentOperand = operate(parseFloat(previousOperand), currentOperator, parseFloat(currentOperand)).toString();
+            previousOperand = currentOperand;
+            screen.value = currentOperand;
+            currentOperand = ""; // Prepare for new operand
+        } else if (previousOperand === "" && currentOperand !== "") {
+            // First operation
+            previousOperand = currentOperand;
+            currentOperand = "";
+        }
+        currentOperator = buttonValue; // Set new operator
+    } else if (buttonValue === '=') {
+        if (currentOperator && previousOperand !== "" && currentOperand !== "") {
+            // Perform calculation
+            screen.value = operate(parseFloat(previousOperand), currentOperator, parseFloat(currentOperand)).toString();
+            // Reset operands, keep result as previousOperand for chaining calculations
+            previousOperand = screen.value;
+            currentOperand = "";
+            currentOperator = null;
         }
     } else if (buttonValue === 'AC') {
-        // Clear the screen
-        screen.value = '';
-        currentOperand = '';
-        previousOperand = '';
+        // Reset everything
+        screen.value = '0';
+        currentOperand = "";
+        previousOperand = "";
         currentOperator = null;
-    } else if (buttonValue === '=') {
-        // Perform calculation
-        calculateResult();
     } else if (buttonValue === '+/-') {
-        if (screen.value) {
-            screen.value = screen.value.includes("-") ? screen.value.replace("-", "") : "-" + screen.value;
-        }
+        // Toggle positive/negative
+        currentOperand = currentOperand.startsWith("-") ? currentOperand.slice(1) : `-${currentOperand}`;
+        screen.value = currentOperand;
     } else if (buttonValue === '%') {
-        let currentValue = parseFloat(screen.value);
-        if (!isNaN(currentValue)) {
-            screen.value = currentValue / 100;
-        }
+        // Convert to percentage
+        currentOperand = (parseFloat(currentOperand) / 100).toString();
+        screen.value = currentOperand;
     }
-    // Additional functionalities like '+/-' and '%' can be added here
+    else if (buttonValue === '.' && !currentOperand.includes('.')) {
+        currentOperand += buttonValue;
+        screen.value = currentOperand;
+    }
 }
 
 buttons.forEach(button => {
